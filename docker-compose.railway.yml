@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "${PORT:-80}:${PORT:-80}"
+    environment:
+      - PORT=${PORT:-80}
+      - MYSQLHOST=${MYSQLHOST}
+      - MYSQLPORT=${MYSQLPORT}
+      - MYSQLUSER=${MYSQLUSER}
+      - MYSQLPASSWORD=${MYSQLPASSWORD}
+      - MYSQLDATABASE=${MYSQLDATABASE}
+      - DATABASE_URL=${DATABASE_URL}
+    restart: unless-stopped

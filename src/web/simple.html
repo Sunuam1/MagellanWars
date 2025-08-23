@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MagellanWars - Space Strategy Game</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(to bottom, #000428, #004e92);
+            color: #fff;
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px;
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(0, 150, 255, 0.5);
+            max-width: 600px;
+        }
+        
+        h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px rgba(0, 150, 255, 0.8);
+            background: linear-gradient(45deg, #00ffff, #0099ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 20px;
+            color: #aaa;
+            margin-bottom: 40px;
+        }
+        
+        .status-box {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #0099ff;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .status-item {
+            margin: 10px 0;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+        }
+        
+        .online { color: #00ff00; }
+        .offline { color: #ff0000; }
+        .partial { color: #ffaa00; }
+        
+        .menu-buttons {
+            margin-top: 30px;
+        }
+        
+        .btn {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 30px;
+            background: linear-gradient(45deg, #0066cc, #0099ff);
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 150, 255, 0.4);
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 150, 255, 0.6);
+        }
+        
+        .btn.disabled {
+            background: #333;
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+        
+        .info {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 50, 100, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 3s infinite;
+        }
+        
+        @keyframes twinkle {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+    
+    <div class="container">
+        <h1>MagellanWars</h1>
+        <p class="subtitle">Conquer the Galaxy • Build Your Empire • Command Your Fleet</p>
+        
+        <div class="status-box">
+            <h2>System Status</h2>
+            <div class="status-item">
+                <strong>Web Server:</strong> <span class="online">● ONLINE</span>
+            </div>
+            <div class="status-item">
+                <strong>Database:</strong> <span class="online">● ONLINE</span>
+            </div>
+            <div class="status-item">
+                <strong>Game Server:</strong> <span class="online">● ONLINE</span>
+            </div>
+        </div>
+        
+        <div class="menu-buttons">
+            <a href="main.php" class="btn">Status Page</a>
+            <a href="login.html" class="btn">Game Login</a>
+            <a href="create_character.html" class="btn">Create Character</a>
+        </div>
+        
+        <div class="info">
+            <h3>About MagellanWars</h3>
+            <p>MagellanWars (Archspace) is a massive multiplayer online space strategy game where you build your galactic empire, research technologies, construct mighty fleets, and engage in epic space battles.</p>
+            <br>
+            <p><strong>Note:</strong> The game server is currently being updated. The web interface is available for viewing.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Create starfield
+        const starsContainer = document.getElementById('stars');
+        for (let i = 0; i < 100; i++) {
+            const star = document.createElement('div');
+            star.className = 'star';
+            star.style.left = Math.random() * 100 + '%';
+            star.style.top = Math.random() * 100 + '%';
+            star.style.width = Math.random() * 3 + 'px';
+            star.style.height = star.style.width;
+            star.style.animationDelay = Math.random() * 3 + 's';
+            starsContainer.appendChild(star);
+        }
+    </script>
+</body>
+</html>
