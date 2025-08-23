@@ -5,13 +5,13 @@ FROM ubuntu:20.04 AS builder
 # Prevent timezone prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install build dependencies
+# Install build dependencies with proper package names
 RUN apt-get update && apt-get install -y \
     build-essential \
     g++ \
     make \
-    libmysqlclient-dev \
-    mysql-client \
+    default-libmysqlclient-dev \
+    default-mysql-client \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy source code
@@ -25,9 +25,10 @@ RUN make clean && make
 # Production image
 FROM php:7.4-apache
 
-# Install runtime dependencies
+# Install runtime dependencies with correct package names
 RUN apt-get update && apt-get install -y \
-    libmysqlclient-dev \
+    default-libmysqlclient-dev \
+    libzip-dev \
     && docker-php-ext-install mysqli pdo pdo_mysql \
     && rm -rf /var/lib/apt/lists/*
 
