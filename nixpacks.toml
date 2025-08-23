@@ -1,0 +1,8 @@
+# Force Railway to use Dockerfile instead of auto-detection
+[phases.setup]
+nixPkgs = ["..."]
+
+[start]
+cmd = "echo 'Using Dockerfile instead of Nixpacks'"
+
+# This file tells Railway to skip Nixpacks and use our Dockerfile

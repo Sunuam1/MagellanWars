@@ -1,4 +1,5 @@
 # Multi-stage build for MagellanWars
+# Use specific builder stage for C++ compilation
 FROM ubuntu:20.04 AS builder
 
 # Prevent timezone prompts
