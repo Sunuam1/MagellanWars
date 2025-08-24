@@ -172,6 +172,7 @@ CServer::open(int aPort)
 
 	SocketAddress.sin_family= AF_INET;
 	SocketAddress.sin_port = htons(aPort);
+	SocketAddress.sin_addr.s_addr = htonl(INADDR_ANY);
 	int 
 		Count = 0;
 
