@@ -235,6 +235,7 @@ try {
             color: #888;
         }
     </style>
+    <script src="turn_timer.js"></script>
 </head>
 <body>
     <div class="header">

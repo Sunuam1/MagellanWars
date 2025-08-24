@@ -83,6 +83,7 @@ $mysqli = @new mysqli($db_host, $db_user, $db_pass, $db_name);
             border-color: #666;
         }
     </style>
+    <script src="turn_timer.js"></script>
 </head>
 <body>
     <div class="container">
