@@ -15,7 +15,7 @@
 #include "util.h"
 #include "define.h"
 
-int CBlackMarket::mBlackMarketItemRegen = 3600;
+int CBlackMarket::mBlackMarketItemRegen = 600; // 10 minutes (2 turns)
 int CBlackMarket::mBidExpireTime = 15;
 
 CBid::CBid()

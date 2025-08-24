@@ -38,11 +38,11 @@ TZone gFleetEffectZone =
 
 //---------------------------------------------------------- CMission
 
-time_t CMission::mTrainMissionTime = 24*900;
-time_t CMission::mPatrolMissionTime = 96*900;
-time_t CMission::mDispatchToAllyMissionTime = 288*900;
-time_t CMission::mExpeditionMissionTime = 24*900;
-time_t CMission::mReturningWithPlanetMissionTime = 24*900;
+time_t CMission::mTrainMissionTime = 24*300;  // 24 turns * 5 minutes
+time_t CMission::mPatrolMissionTime = 96*300;  // 96 turns * 5 minutes
+time_t CMission::mDispatchToAllyMissionTime = 288*300;  // 288 turns * 5 minutes
+time_t CMission::mExpeditionMissionTime = 24*300;  // 24 turns * 5 minutes
+time_t CMission::mReturningWithPlanetMissionTime = 24*300;  // 24 turns * 5 minutes
 int CMission::mAdmiralExpRaid = 0;
 int CMission::mAdmiralExpRaidMultiplier = 20;
 int CMission::mAdmiralExpPatrol = 10;

@@ -111,7 +111,7 @@ if (count($battles) == 0) {
             'def_name' => 'Pirates',
             'att_race' => $_SESSION['player_race'] ?? 1,
             'def_race' => 9,
-            'time' => time() - 3600,
+            'time' => time() - 300, // 5 minutes ago (1 turn)
             'war_type' => 2,
             'winner' => $playerId,
             'field' => 'Asteroid Belt'

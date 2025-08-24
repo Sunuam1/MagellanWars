@@ -139,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         ");
         $updateMissionStmt->execute([
             'mission' => $mission,
-            'time' => time() + 3600, // 1 hour mission
+            'time' => time() + 300, // 5 minute mission (1 turn)
             'owner' => $playerId,
             'id' => $fleetId
         ]);
