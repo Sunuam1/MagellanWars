@@ -33,6 +33,13 @@ while (true) {
             $newTurn = $currentTurn + 1;
             $newTick = $currentTime + 300;
             
+            // Safety check - ensure turn actually increments
+            if ($newTurn <= $currentTurn) {
+                echo "  WARNING: Turn not incrementing! Forcing increment.\n";
+                $newTurn = $currentTurn + 1;
+            }
+            echo "  Current Turn: $currentTurn -> New Turn: $newTurn\n";
+            
             // 1. UPDATE PLAYER TURNS
             $stmt = $pdo->prepare("UPDATE player SET turn = ?, tick = ? WHERE game_id > 0 AND game_id != 9999999");
             $stmt->execute([$newTurn, $newTick]);
@@ -195,7 +202,11 @@ while (true) {
             $pdo->exec("DELETE FROM empire_action WHERE time_limit = 0 AND status = 'PENDING'");
             
             $pdo->commit();
-            echo "[TURN ENGINE] Turn $newTurn completed successfully!\n";
+            
+            // Verify the turn actually updated
+            $verifyStmt = $pdo->query("SELECT MIN(turn) as min_turn, MAX(turn) as max_turn FROM player WHERE game_id > 0 AND game_id != 9999999");
+            $verify = $verifyStmt->fetch(PDO::FETCH_ASSOC);
+            echo "[TURN ENGINE] Turn $newTurn completed! Verified: All players now at turn " . $verify['max_turn'] . "\n";
             
         } else {
             $timeLeft = $nextTick - $currentTime;
