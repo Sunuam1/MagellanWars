@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Turn Status - MagellanWars</title>
+    <meta http-equiv="refresh" content="10">
+    <style>
+        body {
+            background: #000;
+            color: #0f0;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .container {
+            text-align: center;
+            border: 2px solid #0f0;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #0f0;
+            background: rgba(0, 20, 0, 0.8);
+        }
+        h1 {
+            color: #0ff;
+            text-shadow: 0 0 10px #0ff;
+            font-size: 3em;
+            margin: 0 0 20px 0;
+        }
+        .turn-number {
+            font-size: 5em;
+            color: #ff0;
+            text-shadow: 0 0 20px #ff0;
+            margin: 20px 0;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .countdown {
+            font-size: 2em;
+            color: #f0f;
+            margin: 20px 0;
+        }
+        .players {
+            margin-top: 30px;
+            padding: 20px;
+            border-top: 1px solid #0f0;
+        }
+        .player-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            border-bottom: 1px dotted #080;
+        }
+        .success {
+            color: #0f0;
+            font-size: 1.5em;
+            margin-top: 20px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        .timestamp {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 TURN SYSTEM ACTIVE 🚀</h1>
+        <div id="status">Loading...</div>
+        <div class="timestamp">
+            Page auto-refreshes every 10 seconds<br>
+            <span id="time"></span>
+        </div>
+    </div>
+
+    <script>
+        function updateTime() {
+            document.getElementById('time').textContent = new Date().toLocaleString();
+        }
+        
+        async function loadStatus() {
+            try {
+                const response = await fetch('get_turn_status.php');
+                const data = await response.json();
+                
+                const timeRemaining = Math.max(0, data.next_turn_seconds);
+                const minutes = Math.floor(timeRemaining / 60);
+                const seconds = timeRemaining % 60;
+                
+                let html = `
+                    <div class="turn-number">TURN ${data.current_turn}</div>
+                    <div class="countdown">
+                        Next turn in: ${minutes}:${seconds.toString().padStart(2, '0')}
+                    </div>
+                    <div class="players">
+                        <h3>Active Players:</h3>
+                `;
+                
+                if (data.players) {
+                    data.players.forEach(player => {
+                        html += `
+                            <div class="player-row">
+                                <span>${player.name}</span>
+                                <span>Turn ${player.turn}</span>
+                                <span>ID: ${player.game_id}</span>
+                            </div>
+                        `;
+                    });
+                }
+                
+                html += `
+                    </div>
+                    <div class="success">
+                        ✅ TURN PROCESSING SYSTEM OPERATIONAL ✅
+                    </div>
+                `;
+                
+                document.getElementById('status').innerHTML = html;
+                
+                // Change color based on time remaining
+                const countdownEl = document.querySelector('.countdown');
+                if (timeRemaining < 60) {
+                    countdownEl.style.color = '#f00';
+                    countdownEl.style.animation = 'pulse 0.5s infinite';
+                } else if (timeRemaining < 120) {
+                    countdownEl.style.color = '#fa0';
+                }
+                
+            } catch (error) {
+                document.getElementById('status').innerHTML = `
+                    <div style="color: red;">Error loading status: ${error.message}</div>
+                `;
+            }
+        }
+        
+        // Update immediately and then every second
+        updateTime();
+        loadStatus();
+        setInterval(updateTime, 1000);
+        setInterval(loadStatus, 1000);
+    </script>
+</body>
+</html>
