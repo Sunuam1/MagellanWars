@@ -437,6 +437,8 @@ CPlayer::query()
 					mResearchInvest);
 
 			STORE(STORE_TICK, ", tick = %d", mTick);
+			
+			STORE(STORE_TURN, ", turn = %d", mTurn);
 
 			STORE(STORE_RESEARCH, ", research = %d", mResearch);
 
@@ -1529,6 +1531,10 @@ CPlayer::update_turn()
 		STORE_CENTER->store(*Planet);
 	}
 
+	// Increment the player's turn counter
+	mTurn++;
+	mStoreFlag += STORE_TURN;
+	
 	mEffectList.update_turn();
 	mEmpireActionList.flush_db();
 	if (is_protected() && time(0) - mLastLostPlanet->time <= CGame::mSecondPerTurn)
@@ -3298,13 +3304,13 @@ CPlayer::independence_declaration(char *aName, const char *aSlogan)
 
 	// added by thedaz for create council forum ->
 /*
-	player.cc -> council ÀÌ »ý±æ¶§ speaker °¡ ÀÖÀ½
+	player.cc -> council ï¿½ï¿½ ï¿½ï¿½ï¿½æ¶§ speaker ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½
 	db: CouncilForum
 
-	catagories ¿¡ COUNCIL_ID ÀÔ·Âed
-	forums ¿¡ COUNCIL_ID ÀÔ·Âed
-	forum_mods ¿¡ speaker ÀÎ »ç¿ëÀÚ ³Ö±âed (user_id = mGameID)
-	users ¿¡ speaker ³Ö±âed
+	catagories ï¿½ï¿½ COUNCIL_ID ï¿½Ô·ï¿½ed
+	forums ï¿½ï¿½ COUNCIL_ID ï¿½Ô·ï¿½ed
+	forum_mods ï¿½ï¿½ speaker ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½ï¿½ ï¿½Ö±ï¿½ed (user_id = mGameID)
+	users ï¿½ï¿½ speaker ï¿½Ö±ï¿½ed
 */
 /*	SLOG("THEDAZ: Create new council - independence declaration");
 
