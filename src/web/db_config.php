@@ -1,6 +1,14 @@
 <?php
 // Centralized database configuration with Railway support
 
+// Check if we're on Railway and use the public config
+if (getenv('RAILWAY_ENVIRONMENT') || getenv('MYSQL_PUBLIC_URL')) {
+    require_once 'railway_config.php';
+    return;
+}
+
+// Original configuration continues below for local development
+
 // Parse Railway's DATABASE_URL or MYSQL_URL if available
 if (getenv('DATABASE_URL')) {
     $db_url = parse_url(getenv('DATABASE_URL'));

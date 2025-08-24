@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Set Railway environment flag
+export RAILWAY_ENVIRONMENT=true
+
 # Set the PORT for Apache from Railway environment
 if [ -z "$PORT" ]; then
     PORT=80
