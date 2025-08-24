@@ -42,10 +42,23 @@ if (getenv('DATABASE_URL')) {
 // Function to get database connection
 function getDBConnection() {
     try {
-        // Force TCP/IP connection for Railway with port
-        $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
-        $pdo = new PDO($dsn, DB_USER, DB_PASS);
-        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+        // Force TCP/IP connection for Railway - use IP instead of hostname to avoid socket issues
+        $host = DB_HOST;
+        
+        // For Railway, always use TCP/IP connection
+        if (strpos($host, 'railway') !== false || getenv('RAILWAY_ENVIRONMENT')) {
+            // Railway connection - force TCP
+            $dsn = "mysql:host=" . $host . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        } else {
+            // Local connection
+            $dsn = "mysql:host=" . $host . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        }
+        
+        $pdo = new PDO($dsn, DB_USER, DB_PASS, [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_TIMEOUT => 5,
+            PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4"
+        ]);
         return $pdo;
     } catch (PDOException $e) {
         // If connection fails with primary credentials, try alternatives
