@@ -1,0 +1,171 @@
+FROM ubuntu:20.04
+
+# Avoid timezone prompts
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    g++ \
+    make \
+    default-libmysqlclient-dev \
+    libpth-dev \
+    default-mysql-client \
+    pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /usr/src/app
+
+# Copy source code
+COPY MagellanWars-main/src /usr/src/app
+
+# Fix MySQL include paths
+RUN pkg-config --cflags mysqlclient || true
+ENV MYSQL_CFLAGS="-I/usr/include/mysql"
+ENV MYSQL_LIBS="-L/usr/lib/x86_64-linux-gnu -lmysqlclient"
+
+# Build the libraries first - each in correct order
+WORKDIR /usr/src/app/libs
+
+# Build util first (no dependencies)
+WORKDIR /usr/src/app/libs/util
+RUN make -f Makefile.Linux clean && make -f Makefile.Linux
+
+# Build runtime 
+WORKDIR /usr/src/app/libs/runtime
+RUN make -f Makefile.Linux clean && make -f Makefile.Linux
+
+# Build net
+WORKDIR /usr/src/app/libs/net
+RUN make -f Makefile.Linux clean && make -f Makefile.Linux
+
+# Build cgi
+WORKDIR /usr/src/app/libs/cgi
+RUN make -f Makefile.Linux clean && make -f Makefile.Linux
+
+# Build database
+WORKDIR /usr/src/app/libs/database
+RUN make -f Makefile.Linux clean && make -f Makefile.Linux
+
+# Build frame
+WORKDIR /usr/src/app/libs/frame
+RUN make -f Makefile.Linux clean && make -f Makefile.Linux
+
+# Create the static library
+WORKDIR /usr/src/app/libs
+RUN ar rcs libarchspace.a */*.o
+RUN cp libarchspace.a /usr/lib/
+
+# Build the game server
+WORKDIR /usr/src/app/apps/archspace
+
+# Fix the Makefile for correct paths and libraries
+RUN echo "Fixing Makefile.Linux..." && \
+    sed -i 's|-lmysqlclient#|-lmysqlclient|g' Makefile.Linux && \
+    sed -i 's|-L/usr/lib/pth|-L/usr/lib/x86_64-linux-gnu|g' Makefile.Linux && \
+    sed -i 's|-larchspace -lpth -lmysqlclient|-larchspace -lpth -lmysqlclient -lpthread -lz -lm -ldl -lssl -lcrypto|g' Makefile.Linux && \
+    echo "Makefile fixed. Content of LIBS line:" && \
+    grep "^LIBS=" Makefile.Linux
+
+# Compile the game server
+RUN echo "Compiling archspace server..." && \
+    make -f Makefile.Linux clean && \
+    make -f Makefile.Linux archspace 2>&1 | tee /tmp/build.log ; \
+    if [ -f archspace ]; then \
+        echo "SUCCESS: archspace binary built!" && \
+        chmod +x archspace && \
+        ldd archspace ; \
+    else \
+        echo "FAILED: archspace binary not built. Build log:" && \
+        cat /tmp/build.log | tail -100 && \
+        exit 1 ; \
+    fi
+
+# Create config directory
+RUN mkdir -p /etc/archspace
+
+# Copy config file
+COPY MagellanWars-main/archspace.config /etc/archspace/archspace.config
+
+# Create required directories for logs
+RUN mkdir -p /var/log/archspace/battles \
+    /var/log/archspace/council \
+    /var/log/archspace/diplomatic \
+    /var/log/archspace/events
+
+# Create startup script that properly starts the server
+RUN cat > /start.sh << 'SCRIPT_END'
+#!/bin/bash
+set -e
+
+echo "=== MagellanWars C++ Game Server Starting ==="
+echo "Date: $(date)"
+echo "Environment:"
+echo "  DB_HOST=${DB_HOST:-mysql}"
+echo "  DB_USER=${DB_USER:-archspace}"
+echo "  DB_NAME=${DB_NAME:-Archspace2}"
+
+# Create log directories
+mkdir -p /var/log/archspace/battles
+mkdir -p /var/log/archspace/council
+mkdir -p /var/log/archspace/diplomatic
+mkdir -p /var/log/archspace/events
+
+# Wait for MySQL
+echo "Waiting for MySQL to be ready..."
+for i in {1..30}; do
+    if mysql -h${DB_HOST:-mysql} -u${DB_USER:-archspace} -p${DB_PASSWORD:-archspace123} ${DB_NAME:-Archspace2} -e "SELECT 1" &>/dev/null; then
+        echo "MySQL is ready!"
+        break
+    fi
+    echo "Waiting for MySQL... ($i/30)"
+    sleep 2
+done
+
+# Ensure config exists
+if [ ! -f /etc/archspace/archspace.config ]; then
+    echo "Creating configuration file..."
+    cat > /etc/archspace/archspace.config <<EOF
+[Database]
+Host = ${DB_HOST:-mysql}
+User = ${DB_USER:-archspace}
+Password = ${DB_PASSWORD:-archspace123}
+Database = ${DB_NAME:-Archspace2}
+
+[Game]
+StartGame = true
+SecondPerTurn = 300
+UpdateTurn = true
+EOF
+fi
+
+echo "Configuration:"
+cat /etc/archspace/archspace.config
+
+# Initialize turn processing
+echo "Initializing turn system..."
+mysql -h${DB_HOST:-mysql} -u${DB_USER:-archspace} -p${DB_PASSWORD:-archspace123} ${DB_NAME:-Archspace2} <<SQL
+UPDATE player SET tick = UNIX_TIMESTAMP() + 300 WHERE game_id > 0 AND game_id != 9999999;
+UPDATE player SET turn = GREATEST(turn, 1) WHERE game_id > 0 AND game_id != 9999999 AND turn = 0;
+SQL
+
+cd /usr/src/app/apps/archspace
+
+# Start the server
+if [ -f ./archspace ]; then
+    echo "Starting C++ game server..."
+    # Run in foreground with proper signal handling
+    exec ./archspace 2>&1 | tee -a /var/log/archspace/server.log
+else
+    echo "ERROR: archspace binary not found!"
+    ls -la
+    exit 1
+fi
+SCRIPT_END
+
+RUN chmod +x /start.sh
+
+EXPOSE 5000
+
+CMD ["/start.sh"]

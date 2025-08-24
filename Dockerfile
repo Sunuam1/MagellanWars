@@ -1,25 +1,26 @@
-# Ultra-light Dockerfile for Railway deployment
-FROM php:7.4-apache-buster
+# MagellanWars Game Server
+FROM php:7.4-apache
 
-# Install only the MySQL extension without extra packages
-RUN docker-php-ext-install mysqli pdo pdo_mysql
+# Install supervisor and mysql
+RUN apt-get update && apt-get install -y supervisor default-mysql-client && \
+    docker-php-ext-install mysqli pdo pdo_mysql && \
+    rm -rf /var/lib/apt/lists/*
+
+# Configure Apache for port 8080
+RUN sed -i 's/Listen 80/Listen 8080/' /etc/apache2/ports.conf && \
+    sed -i 's/:80/:8080/' /etc/apache2/sites-available/000-default.conf
 
 # Copy web files
-COPY src/web/ /var/www/html/
+COPY src/web /var/www/html
+COPY src /var/www/src
 
-# Copy startup script
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
+# Copy turn processor and supervisor config
+COPY turn_processor.php /turn_processor.php
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
 
-# Set permissions
-RUN chown -R www-data:www-data /var/www/html
+# Make executable
+RUN chmod +x /turn_processor.php
 
-# Configure Apache
-RUN a2enmod rewrite && \
-    echo "ServerName localhost" >> /etc/apache2/apache2.conf
+EXPOSE 8080
 
-# Railway uses dynamic PORT
-EXPOSE ${PORT}
-
-# Start Apache with dynamic port
-CMD ["/start.sh"]
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
