@@ -20,104 +20,43 @@
   # Create log directories
   RUN mkdir -p /var/log/archspace /var/log/supervisor
 
-  # Create the complete turn processor
-  RUN cat > /var/www/html/turn_processor.php << 'PROCESSOR'
-  #!/usr/bin/env php
-  <?php
-  \$db_host = getenv('DB_HOST') ?: 'localhost';
-  \$db_name = getenv('DB_NAME') ?: 'Archspace2';
-  \$db_user = getenv('DB_USER') ?: 'archspace';
-  \$db_pass = getenv('DB_PASSWORD') ?: 'archspace123';
+  # Create the turn processor as a separate file
+  RUN echo '#!/usr/bin/env php' > /usr/local/bin/turn_processor.php && \
+      echo '<?php' >> /usr/local/bin/turn_processor.php && \
+      echo 'while (true) {' >> /usr/local/bin/turn_processor.php && \
+      echo '  try {' >> /usr/local/bin/turn_processor.php && \
+      echo '    $pdo = new PDO("mysql:host=" . getenv("DB_HOST") . ";dbname=" . getenv("DB_NAME"),
+  getenv("DB_USER"), getenv("DB_PASSWORD"));' >> /usr/local/bin/turn_processor.php && \
+      echo '    $stmt = $pdo->query("SELECT MIN(tick) as next_tick, MAX(turn) as current_turn FROM player WHERE
+  game_id > 0 AND game_id != 9999999");' >> /usr/local/bin/turn_processor.php && \
+      echo '    $info = $stmt->fetch(PDO::FETCH_ASSOC);' >> /usr/local/bin/turn_processor.php && \
+      echo '    if ($info["next_tick"] <= time() || $info["next_tick"] == 0) {' >>
+  /usr/local/bin/turn_processor.php && \
+      echo '      $newTurn = ($info["current_turn"] ?: 0) + 1;' >> /usr/local/bin/turn_processor.php && \
+      echo '      $newTick = time() + 300;' >> /usr/local/bin/turn_processor.php && \
+      echo '      echo "[TURNS] Processing turn " . $info["current_turn"] . " to " . $newTurn . "\n";' >>
+  /usr/local/bin/turn_processor.php && \
+      echo '      $pdo->exec("UPDATE player SET turn = $newTurn, tick = $newTick, production = production + 100,
+  research = research + 10 WHERE game_id > 0 AND game_id != 9999999");' >> /usr/local/bin/turn_processor.php && \
+      echo '    }' >> /usr/local/bin/turn_processor.php && \
+      echo '  } catch (Exception $e) { echo "Error: " . $e->getMessage() . "\n"; }' >>
+  /usr/local/bin/turn_processor.php && \
+      echo '  sleep(30);' >> /usr/local/bin/turn_processor.php && \
+      echo '}' >> /usr/local/bin/turn_processor.php && \
+      chmod +x /usr/local/bin/turn_processor.php
 
-  echo "[TURNS] Starting turn processor\\n";
-
-  while (true) {
-      try {
-          \$pdo = new PDO("mysql:host=\$db_host;dbname=\$db_name", \$db_user, \$db_pass);
-          \$stmt = \$pdo->query("SELECT MIN(tick) as next_tick, MAX(turn) as current_turn FROM player WHERE game_id
-   > 0 AND game_id != 9999999");
-          \$info = \$stmt->fetch(PDO::FETCH_ASSOC);
-
-          \$currentTime = time();
-          \$nextTick = \$info['next_tick'] ?: 0;
-          \$currentTurn = \$info['current_turn'] ?: 0;
-
-          if (\$nextTick <= \$currentTime || \$nextTick == 0) {
-              \$newTurn = \$currentTurn + 1;
-              \$newTick = \$currentTime + 300;
-
-              echo "[TURNS] Processing turn \$currentTurn -> \$newTurn\\n";
-
-              // Update turns
-              \$stmt = \$pdo->prepare("UPDATE player SET turn = ?, tick = ? WHERE game_id > 0 AND game_id !=
-  9999999");
-              \$stmt->execute([\$newTurn, \$newTick]);
-
-              // Update resources
-              \$pdo->exec("UPDATE player SET production = production + 100, research = research + 10, military =
-  military + 5 WHERE game_id > 0 AND game_id != 9999999");
-
-              echo "[TURNS] Turn \$newTurn complete!\\n";
-          }
-      } catch (Exception \$e) {
-          echo "[TURNS] Error: " . \$e->getMessage() . "\\n";
-      }
-      sleep(30);
-  }
-  ?>
-  PROCESSOR
-
-  RUN chmod +x /var/www/html/turn_processor.php
-
-  # Supervisor configuration
-  RUN cat > /etc/supervisor/conf.d/supervisord.conf << 'SUPERVISOR'
-  [supervisord]
-  nodaemon=true
-  logfile=/var/log/supervisor/supervisord.log
-
-  [program:apache2]
-  command=/usr/sbin/apache2ctl -D FOREGROUND
-  autostart=true
-  autorestart=true
-  stdout_logfile=/dev/stdout
-  stdout_logfile_maxbytes=0
-  stderr_logfile=/dev/stderr
-  stderr_logfile_maxbytes=0
-
-  [program:turnprocessor]
-  command=php /var/www/html/turn_processor.php
-  autostart=true
-  autorestart=true
-  stdout_logfile=/dev/stdout
-  stdout_logfile_maxbytes=0
-  stderr_logfile=/dev/stderr
-  stderr_logfile_maxbytes=0
-  environment=DB_HOST="%(ENV_DB_HOST)s",DB_NAME="%(ENV_DB_NAME)s",DB_USER="%(ENV_DB_USER)s",DB_PASSWORD="%(ENV_DB_P
-  ASSWORD)s"
-  SUPERVISOR
-
-  # Startup script
-  RUN cat > /start.sh << 'SCRIPT'
-  #!/bin/bash
-  echo "=== MagellanWars Starting ==="
-  echo "Waiting for database..."
-
-  for i in {1..30}; do
-      if mysql -h\${DB_HOST} -u\${DB_USER} -p\${DB_PASSWORD} \${DB_NAME} -e "SELECT 1" &>/dev/null; then
-          echo "Database ready!"
-          mysql -h\${DB_HOST} -u\${DB_USER} -p\${DB_PASSWORD} \${DB_NAME} -e "UPDATE player SET tick =
-  UNIX_TIMESTAMP() + 300 WHERE game_id > 0 AND (tick = 0 OR tick IS NULL)"
-          break
-      fi
-      sleep 2
-  done
-
-  echo "Starting supervisor..."
-  exec /usr/bin/supervisord -c /etc/supervisor/conf.d/supervisord.conf
-  SCRIPT
-
-  RUN chmod +x /start.sh
+  # Create supervisor config
+  RUN echo '[supervisord]' > /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'nodaemon=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo '[program:apache2]' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'command=/usr/sbin/apache2ctl -D FOREGROUND' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo '[program:turnprocessor]' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'command=php /usr/local/bin/turn_processor.php' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'autostart=true' >> /etc/supervisor/conf.d/supervisord.conf && \
+      echo 'autorestart=true' >> /etc/supervisor/conf.d/supervisord.conf
 
   EXPOSE 8080
 
-  CMD ["/start.sh"]
+  CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
