@@ -234,6 +234,11 @@ CPlayerTable::load(CMySQL &aMySQL)
 	//aMySQL.query( "UNLOCK TABLES" );
 
 	SLOG("%d Players are loaded", length());
+	SLOG("mUpdatePlayer status: %s", mUpdatePlayer ? "INITIALIZED" : "NULL");
+	if (mUpdatePlayer) {
+		SLOG("First player in update list: %s (ID: %d)", 
+		     mUpdatePlayer->get_nick(), mUpdatePlayer->get_game_id());
+	}
 
 	load_tech(aMySQL);
 	load_admiral(aMySQL);
@@ -1367,7 +1372,7 @@ CPlayerTable::give_planet_to_owner( CPlanet *aPlanet )
 void*
 CPlayerTable::update(void *aArg)
 {
-	SLOG("Update Thread");
+	SLOG("Update Thread Started - mUpdateTurn=%d, mSecondPerTurn=%d", GAME->mUpdateTurn, CGame::mSecondPerTurn);
 	if(!GAME->mUpdateTurn) GAME->mServerStartTime = time(0);
 	static int UpdatePlayerPerMinute = 0;
 	static time_t UpdateTimer = CGame::get_game_time();
@@ -1407,6 +1412,7 @@ CPlayerTable::update(void *aArg)
 
 		if (mUpdatePlayer == NULL)
 		{
+			SLOG("WARNING: mUpdatePlayer is NULL - no players to update! Player table length: %d", PLAYER_TABLE->length());
 			CGame::unlock();
 			pth_nap((pth_time_t){1, 0});
 
@@ -1463,7 +1469,11 @@ CPlayerTable::update(void *aArg)
 			mUpdatePlayer = mUpdatePlayer->next();
 
 			if (CGame::mUpdateTurn)
+			{
+			   SLOG("Processing turn for player %s (ID: %d, Turn: %d -> %d)", 
+			        Update->get_nick(), Update->get_game_id(), Update->get_turn(), Update->get_turn() + 1);
 			   Update->update_turn();
+			}
 
 			Update->type(QUERY_UPDATE);
 			*STORE_CENTER << *Update;

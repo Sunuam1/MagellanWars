@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>MagellanWars Server Monitor</title>
+    <style>
+        body {
+            background: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Courier New', monospace;
+            padding: 20px;
+            margin: 0;
+        }
+        
+        h1 {
+            color: #00ffff;
+            text-align: center;
+            text-shadow: 0 0 10px #00ffff;
+        }
+        
+        .status-container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .check-item {
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        
+        .status-OK {
+            border-left: 5px solid #00ff00;
+        }
+        
+        .status-WARNING {
+            border-left: 5px solid #ffaa00;
+        }
+        
+        .status-FAILED, .status-CRITICAL {
+            border-left: 5px solid #ff0000;
+            animation: pulse 1s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.7; }
+            100% { opacity: 1; }
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 3px;
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .badge-OK {
+            background: #00ff00;
+            color: #000;
+        }
+        
+        .badge-WARNING {
+            background: #ffaa00;
+            color: #000;
+        }
+        
+        .badge-FAILED, .badge-CRITICAL {
+            background: #ff0000;
+            color: #fff;
+        }
+        
+        .badge-INFO {
+            background: #0088ff;
+            color: #fff;
+        }
+        
+        .data-section {
+            background: #0a0a0a;
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+        
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .refresh-info {
+            text-align: center;
+            margin: 20px 0;
+            color: #888;
+        }
+        
+        .overall-status {
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            font-size: 24px;
+            font-weight: bold;
+            border-radius: 10px;
+        }
+        
+        .overall-OK {
+            background: linear-gradient(135deg, #004400, #008800);
+            color: #00ff00;
+        }
+        
+        .overall-FAILED, .overall-CRITICAL {
+            background: linear-gradient(135deg, #440000, #880000);
+            color: #ff0000;
+        }
+        
+        #countdown {
+            color: #00ffff;
+        }
+        
+        .log-viewer {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            font-size: 11px;
+            border: 1px solid #0f0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 MagellanWars Server Monitor 🚀</h1>
+    
+    <div class="status-container">
+        <div id="overall" class="overall-status">
+            Loading status...
+        </div>
+        
+        <div class="refresh-info">
+            Auto-refresh in <span id="countdown">10</span> seconds
+        </div>
+        
+        <div id="status-checks">
+            <!-- Checks will be inserted here -->
+        </div>
+    </div>
+    
+    <script>
+        let countdown = 10;
+        
+        function loadStatus() {
+            fetch('server_status.php')
+                .then(response => response.json())
+                .then(data => {
+                    displayStatus(data);
+                    countdown = 10;
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    document.getElementById('overall').innerHTML = 
+                        '<span style="color: red">⚠️ FAILED TO CONNECT TO MONITOR ⚠️</span>';
+                });
+        }
+        
+        function displayStatus(data) {
+            // Overall status
+            const overall = document.getElementById('overall');
+            overall.className = 'overall-status overall-' + data.overall.status;
+            overall.innerHTML = data.overall.status === 'OK' 
+                ? '✅ ALL SYSTEMS OPERATIONAL ✅<br><small>' + data.overall.message + '</small>'
+                : '🚨 ' + data.overall.message + ' 🚨';
+            
+            // Individual checks
+            const container = document.getElementById('status-checks');
+            container.innerHTML = '';
+            
+            for (const [key, check] of Object.entries(data.checks)) {
+                const div = document.createElement('div');
+                div.className = 'check-item status-' + check.status;
+                
+                let html = `
+                    <span class="status-badge badge-${check.status}">${check.status}</span>
+                    <strong>${key.replace(/_/g, ' ').toUpperCase()}</strong>
+                    <div style="margin-top: 5px; color: #ccc">${check.message}</div>
+                `;
+                
+                if (check.data) {
+                    if (typeof check.data === 'string') {
+                        html += `<div class="data-section"><pre>${check.data}</pre></div>`;
+                    } else if (Array.isArray(check.data)) {
+                        html += '<div class="data-section">';
+                        check.data.forEach(item => {
+                            if (typeof item === 'object') {
+                                html += '<div style="margin: 5px 0; padding: 5px; background: #111">';
+                                for (const [k, v] of Object.entries(item)) {
+                                    html += `<strong>${k}:</strong> ${v} `;
+                                }
+                                html += '</div>';
+                            } else {
+                                html += `<div>${item}</div>`;
+                            }
+                        });
+                        html += '</div>';
+                    } else if (typeof check.data === 'object') {
+                        html += '<div class="data-section">';
+                        for (const [k, v] of Object.entries(check.data)) {
+                            html += `<div><strong>${k}:</strong> ${v}</div>`;
+                        }
+                        html += '</div>';
+                    }
+                }
+                
+                div.innerHTML = html;
+                container.appendChild(div);
+            }
+            
+            // Special highlight for turn processing
+            if (data.checks.turn_processing && data.checks.turn_processing.data) {
+                const turnData = data.checks.turn_processing.data;
+                if (turnData.max_turn === 0) {
+                    const alert = document.createElement('div');
+                    alert.className = 'check-item status-CRITICAL';
+                    alert.style.fontSize = '18px';
+                    alert.style.textAlign = 'center';
+                    alert.innerHTML = `
+                        <h2 style="color: #ff0000">⚠️ CRITICAL ISSUE ⚠️</h2>
+                        <p>Game is stuck at TURN 0!</p>
+                        <p>The C++ game server is NOT processing turns!</p>
+                        <p>Check the game server logs below for errors.</p>
+                    `;
+                    container.insertBefore(alert, container.firstChild);
+                }
+            }
+        }
+        
+        // Countdown timer
+        setInterval(() => {
+            countdown--;
+            document.getElementById('countdown').textContent = countdown;
+            if (countdown <= 0) {
+                loadStatus();
+            }
+        }, 1000);
+        
+        // Initial load
+        loadStatus();
+    </script>
+</body>
+</html>
