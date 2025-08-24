@@ -112,14 +112,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $message = trim($_POST['message'] ?? 'Request to join your council');
             
             $createAdmissionStmt = $pdo->prepare("
-                INSERT INTO admission (player_id, council_id, time, message)
-                VALUES (:player, :council, :time, :message)
+                INSERT INTO admission (player, council, status, time, content)
+                VALUES (:player, :council, 0, :time, :content)
             ");
             $createAdmissionStmt->execute([
                 'player' => $playerId,
                 'council' => $councilId,
                 'time' => time(),
-                'message' => $message
+                'content' => $message
             ]);
             
             $successMsg = "Admission request sent!";
