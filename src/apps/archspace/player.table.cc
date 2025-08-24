@@ -253,6 +253,21 @@ CPlayerTable::load(CMySQL &aMySQL)
 	load_effect(aMySQL);
 	load_preferences(aMySQL);
 	refresh_rank_table();
+	
+	// Add active players to the update list
+	SLOG("Adding active players to update list...");
+	int UpdateCount = 0;
+	for (int i = 0; i < length(); i++)
+	{
+		CPlayer *Player = (CPlayer *)get(i);
+		if (Player && Player->get_game_id() > 0 && Player->get_game_id() != EMPIRE_GAME_ID && !Player->is_dead())
+		{
+			add_update_list(Player);
+			UpdateCount++;
+			SLOG("Added player %s (ID: %d) to update list", Player->get_nick(), Player->get_game_id());
+		}
+	}
+	SLOG("Added %d players to update list", UpdateCount);
 
 	return true;
 }
@@ -1412,11 +1427,29 @@ CPlayerTable::update(void *aArg)
 
 		if (mUpdatePlayer == NULL)
 		{
-			SLOG("WARNING: mUpdatePlayer is NULL - no players to update! Player table length: %d", PLAYER_TABLE->length());
-			CGame::unlock();
-			pth_nap((pth_time_t){1, 0});
-
-			continue;
+			SLOG("WARNING: mUpdatePlayer is NULL - checking for players to add to update list...");
+			// Try to initialize update list with active players
+			for (int i = 0; i < length(); i++)
+			{
+				CPlayer *Player = (CPlayer *)get(i);
+				if (Player && Player->get_game_id() > 0 && Player->get_game_id() != EMPIRE_GAME_ID && !Player->is_dead())
+				{
+					SLOG("Adding player %s (ID: %d) to update list", Player->get_nick(), Player->get_game_id());
+					add_update_list(Player);
+				}
+			}
+			
+			if (mUpdatePlayer == NULL)
+			{
+				SLOG("ERROR: Still no players to update after initialization! Player table length: %d", PLAYER_TABLE->length());
+				CGame::unlock();
+				pth_nap((pth_time_t){1, 0});
+				continue;
+			}
+			else
+			{
+				SLOG("SUCCESS: Initialized update list with players, starting turn processing!");
+			}
 		}
 		NumberofPlayer = PLAYER_TABLE->length();
 
