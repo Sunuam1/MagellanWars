@@ -27,11 +27,13 @@ try {
     $playersStmt->execute(['id' => $playerId]);
     $allPlayers = $playersStmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get inbox messages
+    // Get inbox messages with content
     $inboxStmt = $pdo->prepare("
-        SELECT dm.*, p.name as sender_name, p.race as sender_race
+        SELECT dm.*, p.name as sender_name, p.race as sender_race,
+               dmc.content as message_content
         FROM diplomatic_message dm
         JOIN player p ON dm.sender = p.game_id
+        LEFT JOIN diplomatic_message_content dmc ON dm.id = dmc.message_id
         WHERE dm.receiver = :receiver
         ORDER BY dm.time DESC
         LIMIT 50
@@ -39,11 +41,13 @@ try {
     $inboxStmt->execute(['receiver' => $playerId]);
     $inbox = $inboxStmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Get sent messages
+    // Get sent messages with content
     $sentStmt = $pdo->prepare("
-        SELECT dm.*, p.name as receiver_name, p.race as receiver_race
+        SELECT dm.*, p.name as receiver_name, p.race as receiver_race,
+               dmc.content as message_content
         FROM diplomatic_message dm
         JOIN player p ON dm.receiver = p.game_id
+        LEFT JOIN diplomatic_message_content dmc ON dm.id = dmc.message_id
         WHERE dm.sender = :sender
         ORDER BY dm.time DESC
         LIMIT 50
@@ -88,16 +92,14 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 'time' => time()
             ]);
             
-            // Store content in player_action as a workaround (using argument field)
-            $contentId = time() + rand(10000, 99999);
-            $pdo->prepare("
-                INSERT INTO player_action (id, start_time, action, owner, argument)
-                VALUES (:id, :time, 999, :msg_id, :receiver)
-            ")->execute([
-                'id' => $contentId,
-                'time' => time(),
+            // Store actual message content
+            $contentStmt = $pdo->prepare("
+                INSERT INTO diplomatic_message_content (message_id, content)
+                VALUES (:msg_id, :content)
+            ");
+            $contentStmt->execute([
                 'msg_id' => $messageId,
-                'receiver' => $receiver
+                'content' => $messageContent
             ]);
             
             $successMsg = "Message sent successfully!";
@@ -601,8 +603,8 @@ $sampleMessages = [
                         
                         <div class="message-preview">
                             <?php 
-                            // Use sample message content
-                            echo $sampleMessages[$index % count($sampleMessages)];
+                            // Display actual message content or sample if none exists
+                            echo htmlspecialchars($msg['message_content'] ?? $sampleMessages[$index % count($sampleMessages)]);
                             ?>
                         </div>
                         
@@ -667,8 +669,8 @@ $sampleMessages = [
                         
                         <div class="message-preview">
                             <?php 
-                            // Use sample message content
-                            echo $sampleMessages[($index + 3) % count($sampleMessages)];
+                            // Display actual message content or sample if none exists
+                            echo htmlspecialchars($msg['message_content'] ?? $sampleMessages[($index + 3) % count($sampleMessages)]);
                             ?>
                         </div>
                         

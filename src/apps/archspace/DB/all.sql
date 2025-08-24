@@ -241,7 +241,21 @@ CREATE TABLE council_message (
 	KEY idx0 (receiver)
 );
 
+DROP TABLE IF EXISTS diplomatic_message_content;
 
+CREATE TABLE diplomatic_message_content (
+	message_id INT UNSIGNED NOT NULL,
+	content TEXT,
+	PRIMARY KEY(message_id)
+);
+
+DROP TABLE IF EXISTS council_message_content;
+
+CREATE TABLE council_message_content (
+	message_id INT UNSIGNED NOT NULL,
+	content TEXT,
+	PRIMARY KEY(message_id)
+);
 
 DROP TABLE IF EXISTS player_action;
 
