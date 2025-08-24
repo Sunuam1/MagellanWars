@@ -44,11 +44,40 @@ while (true) {
             $stmt->execute(['turn' => $newTurn, 'tick' => $newTick]);
             $updated = $stmt->rowCount();
             
-            // Update resources
+            // Update player resources based on their planets
+            $pdo->exec("UPDATE player p
+                       JOIN (
+                           SELECT owner, 
+                                  SUM(GREATEST(0, population * (100 - tax_rate) / 100)) as total_production,
+                                  SUM(GREATEST(0, population * research_investment / 100)) as total_research,
+                                  SUM(GREATEST(0, population * military_investment / 100)) as total_military
+                           FROM planet 
+                           WHERE owner > 0
+                           GROUP BY owner
+                       ) planet_prod ON p.game_id = planet_prod.owner
+                       SET p.production = p.production + COALESCE(planet_prod.total_production, 100),
+                           p.research = p.research + COALESCE(planet_prod.total_research, 10),
+                           p.military = p.military + COALESCE(planet_prod.total_military, 5)
+                       WHERE p.game_id > 0 AND p.game_id != 9999999");
+            
+            // Update planet populations (growth)
+            $pdo->exec("UPDATE planet 
+                       SET population = LEAST(max_population, population * 1.01)
+                       WHERE owner > 0");
+            
+            // Process building construction
+            $pdo->exec("UPDATE planet 
+                       SET building_production = GREATEST(0, building_production - 10)
+                       WHERE building_production > 0");
+            
+            // Update fleet movements
+            $pdo->exec("UPDATE fleet 
+                       SET current_tick = GREATEST(0, current_tick - 1)
+                       WHERE current_tick > 0");
+            
+            // Process research progress
             $pdo->exec("UPDATE player 
-                       SET production = production + 100,
-                           research = research + 10,
-                           military = military + 5
+                       SET research_points = research_points + (research / 100)
                        WHERE game_id > 0 AND game_id != 9999999");
             
             echo "[TURN DAEMON] *** TURN $newTurn PROCESSED *** Updated $updated players at " . date('Y-m-d H:i:s') . "\n";
