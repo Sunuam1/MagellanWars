@@ -29,7 +29,7 @@ function checkServerStatus() {
     }
     
     // Check 2: Game server process (check if port 5000 is listening)
-    $socket = @fsockopen('gameserver', 5000, $errno, $errstr, 1);
+    $socket = @fsockopen('localhost', 5000, $errno, $errstr, 1);
     if ($socket) {
         fclose($socket);
         $status['checks']['gameserver_port'] = [
