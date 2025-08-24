@@ -3,10 +3,11 @@
 echo "[TURNS] Starting turn processor\n";
 while (true) {
     try {
-        $db_host = getenv('DB_HOST') ?: 'localhost';
-        $db_name = getenv('DB_NAME') ?: 'Archspace2';
-        $db_user = getenv('DB_USER') ?: 'archspace';
-        $db_pass = getenv('DB_PASSWORD') ?: 'archspace123';
+        // Use Railway's environment variables
+        $db_host = getenv('DB_HOST') ?: getenv('MYSQLHOST') ?: 'localhost';
+        $db_name = getenv('DB_NAME') ?: getenv('MYSQLDATABASE') ?: 'Archspace2';
+        $db_user = getenv('DB_USER') ?: getenv('MYSQLUSER') ?: 'archspace';
+        $db_pass = getenv('DB_PASSWORD') ?: getenv('MYSQLPASSWORD') ?: 'archspace123';
         
         $pdo = new PDO("mysql:host=$db_host;dbname=$db_name", $db_user, $db_pass);
         $stmt = $pdo->query("SELECT MIN(tick) as next_tick, MAX(turn) as current_turn FROM player WHERE game_id > 0 AND game_id != 9999999");
