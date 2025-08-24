@@ -18,14 +18,18 @@ while (true) {
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         
         // Check if turn needs processing
-        $stmt = $pdo->query("SELECT MIN(tick) as next_tick, MAX(turn) as current_turn FROM player WHERE game_id > 0 AND game_id != 9999999");
+        $stmt = $pdo->query("SELECT MIN(tick) as next_tick, MAX(turn) as current_turn, COUNT(*) as player_count FROM player WHERE game_id > 0 AND game_id != 9999999");
         $info = $stmt->fetch(PDO::FETCH_ASSOC);
         
         $currentTime = time();
         $nextTick = $info['next_tick'] ?: 0;
         $currentTurn = $info['current_turn'] ?: 0;
+        $playerCount = $info['player_count'] ?: 0;
         
-        if ($nextTick <= $currentTime || $nextTick == 0) {
+        // Debug logging
+        echo "[DEBUG] Time: " . date('H:i:s') . " | Current Turn: $currentTurn | Next Tick: " . ($nextTick - $currentTime) . "s | Players: $playerCount\n";
+        
+        if ($nextTick <= $currentTime || $nextTick == 0 || $nextTick > $currentTime + 3600) {
             echo "\n[TURN ENGINE] Processing Turn " . ($currentTurn + 1) . " at " . date('Y-m-d H:i:s') . "\n";
             
             $pdo->beginTransaction();
@@ -46,26 +50,44 @@ while (true) {
             echo "  - Updated " . $stmt->rowCount() . " players to turn $newTurn\n";
             
             // 2. PLANET PRODUCTION & GROWTH
-            // Calculate production from planets
-            $pdo->exec("
-                UPDATE player p
-                INNER JOIN (
-                    SELECT owner,
-                        SUM(GREATEST(0, population * factory / 100)) as prod,
-                        SUM(GREATEST(0, population * research_lab / 100)) as res,
-                        SUM(GREATEST(0, population * military_base / 100)) as mil
-                    FROM planet
-                    WHERE owner > 0
-                    GROUP BY owner
-                ) planet_income ON p.game_id = planet_income.owner
-                SET p.production = p.production + planet_income.prod,
-                    p.research = p.research + planet_income.res,
-                    p.military = p.military + planet_income.mil
-            ");
+            // First check what planets exist
+            $planetCheck = $pdo->query("SELECT COUNT(*) as count FROM planet WHERE owner > 0");
+            $planetCount = $planetCheck->fetchColumn();
+            echo "  - Found $planetCount player-owned planets\n";
+            
+            if ($planetCount > 0) {
+                // Calculate production from planets
+                $result = $pdo->exec("
+                    UPDATE player p
+                    INNER JOIN (
+                        SELECT owner,
+                            SUM(GREATEST(0, population * factory / 100)) as prod,
+                            SUM(GREATEST(0, population * research_lab / 100)) as res,
+                            SUM(GREATEST(0, population * military_base / 100)) as mil
+                        FROM planet
+                        WHERE owner > 0
+                        GROUP BY owner
+                    ) planet_income ON p.game_id = planet_income.owner
+                    SET p.production = p.production + COALESCE(planet_income.prod, 0),
+                        p.research = p.research + COALESCE(planet_income.res, 0),
+                        p.military = p.military + COALESCE(planet_income.mil, 0)
+                ");
+                echo "  - Updated production for $result players from planets\n";
+            } else {
+                // No planets, give base production
+                $pdo->exec("UPDATE player SET production = production + 100, research = research + 10, military = military + 5 WHERE game_id > 0 AND game_id != 9999999");
+                echo "  - No planets found, added base production (100/10/5)\n";
+            }
             
             // Planet population growth
             $pdo->exec("UPDATE planet SET population = LEAST(max_population, population * 1.002) WHERE owner > 0");
-            echo "  - Processed planet production and growth\n";
+            
+            // Show current resource levels
+            $resourceCheck = $pdo->query("SELECT game_id, name, production, research, military FROM player WHERE game_id > 0 AND game_id != 9999999");
+            $players = $resourceCheck->fetchAll(PDO::FETCH_ASSOC);
+            foreach ($players as $p) {
+                echo "    Player {$p['name']}: Prod={$p['production']}, Res={$p['research']}, Mil={$p['military']}\n";
+            }
             
             // 3. SHIP BUILDING
             // Progress ship construction
