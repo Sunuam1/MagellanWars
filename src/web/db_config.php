@@ -4,31 +4,36 @@
 // Parse Railway's DATABASE_URL or MYSQL_URL if available
 if (getenv('DATABASE_URL')) {
     $db_url = parse_url(getenv('DATABASE_URL'));
-    define('DB_HOST', $db_url['host'] . (isset($db_url['port']) ? ':' . $db_url['port'] : ''));
+    define('DB_HOST', $db_url['host']);
+    define('DB_PORT', $db_url['port'] ?? 3306);
     define('DB_USER', $db_url['user']);
     define('DB_PASS', $db_url['pass']);
     define('DB_NAME', ltrim($db_url['path'], '/'));
 } elseif (getenv('MYSQL_URL')) {
     $db_url = parse_url(getenv('MYSQL_URL'));
-    define('DB_HOST', $db_url['host'] . (isset($db_url['port']) ? ':' . $db_url['port'] : ''));
+    define('DB_HOST', $db_url['host']);
+    define('DB_PORT', $db_url['port'] ?? 3306);
     define('DB_USER', $db_url['user']);
     define('DB_PASS', $db_url['pass']);
     define('DB_NAME', ltrim($db_url['path'], '/'));
 } elseif (getenv('MYSQLHOST')) {
     // Railway's individual MySQL variables
-    define('DB_HOST', getenv('MYSQLHOST') . ':' . getenv('MYSQLPORT'));
+    define('DB_HOST', getenv('MYSQLHOST'));
+    define('DB_PORT', getenv('MYSQLPORT'));
     define('DB_USER', getenv('MYSQLUSER'));
     define('DB_PASS', getenv('MYSQLPASSWORD'));
     define('DB_NAME', getenv('MYSQLDATABASE'));
 } elseif (getenv('DB_HOST')) {
     // Docker environment
     define('DB_HOST', getenv('DB_HOST'));
+    define('DB_PORT', getenv('DB_PORT') ?? 3306);
     define('DB_NAME', getenv('DB_NAME'));
     define('DB_USER', getenv('DB_USER'));
     define('DB_PASS', getenv('DB_PASSWORD'));
 } else {
     // Local development or non-Docker environment
     define('DB_HOST', 'localhost');
+    define('DB_PORT', 3306);
     define('DB_NAME', 'Archspace2');
     define('DB_USER', 'archspace');
     define('DB_PASS', 'archspace123');
@@ -37,7 +42,9 @@ if (getenv('DATABASE_URL')) {
 // Function to get database connection
 function getDBConnection() {
     try {
-        $pdo = new PDO("mysql:host=" . DB_HOST . ";dbname=" . DB_NAME, DB_USER, DB_PASS);
+        // Force TCP/IP connection for Railway with port
+        $dsn = "mysql:host=" . DB_HOST . ";port=" . DB_PORT . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS);
         $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
