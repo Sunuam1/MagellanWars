@@ -98,7 +98,53 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 'time' => time()
             ]);
             
-            $successMsg = "Treaty proposal sent!";
+            // If it's a war declaration (type 4), create the relation immediately
+            if ($treatyType == 4) {
+                // Check if relation already exists
+                $checkRelationStmt = $pdo->prepare("
+                    SELECT * FROM player_relation 
+                    WHERE (player1 = :p1 AND player2 = :p2) OR (player1 = :p3 AND player2 = :p4)
+                ");
+                $checkRelationStmt->execute([
+                    'p1' => $playerId,
+                    'p2' => $targetPlayer,
+                    'p3' => $targetPlayer,
+                    'p4' => $playerId
+                ]);
+                
+                if ($checkRelationStmt->rowCount() > 0) {
+                    // Update existing relation to war
+                    $updateRelationStmt = $pdo->prepare("
+                        UPDATE player_relation 
+                        SET relation = -2, time = :time
+                        WHERE (player1 = :p1 AND player2 = :p2) OR (player1 = :p3 AND player2 = :p4)
+                    ");
+                    $updateRelationStmt->execute([
+                        'time' => time(),
+                        'p1' => $playerId,
+                        'p2' => $targetPlayer,
+                        'p3' => $targetPlayer,
+                        'p4' => $playerId
+                    ]);
+                } else {
+                    // Create new war relation
+                    $relationId = time() + rand(10000, 99999);
+                    $createRelationStmt = $pdo->prepare("
+                        INSERT INTO player_relation (id, player1, player2, relation, time)
+                        VALUES (:id, :p1, :p2, -2, :time)
+                    ");
+                    $createRelationStmt->execute([
+                        'id' => $relationId,
+                        'p1' => min($playerId, $targetPlayer),
+                        'p2' => max($playerId, $targetPlayer),
+                        'time' => time()
+                    ]);
+                }
+                
+                $successMsg = "War has been declared!";
+            } else {
+                $successMsg = "Treaty proposal sent!";
+            }
         }
     }
     
