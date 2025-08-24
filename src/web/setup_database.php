@@ -333,6 +333,189 @@ try {
             x int NOT NULL,
             y int NOT NULL,
             PRIMARY KEY(owner, plan_id, fleet_id)
+        )",
+        
+        'docked_ship' => "CREATE TABLE IF NOT EXISTS docked_ship (
+            owner int NOT NULL,
+            design_id int NOT NULL,
+            number int NOT NULL,
+            PRIMARY KEY(owner, design_id)
+        )",
+        
+        'ship_building_q' => "CREATE TABLE IF NOT EXISTS ship_building_q (
+            owner int NOT NULL,
+            design_id int NOT NULL,
+            number int NOT NULL,
+            time_order int NOT NULL,
+            PRIMARY KEY(owner, time_order)
+        )",
+        
+        'damaged_ship' => "CREATE TABLE IF NOT EXISTS damaged_ship (
+            owner int NOT NULL,
+            id int NOT NULL,
+            design_id int NOT NULL,
+            hp int NOT NULL,
+            PRIMARY KEY(owner, id)
+        )",
+        
+        'damage' => "CREATE TABLE IF NOT EXISTS damage (
+            id int NOT NULL,
+            owner int NOT NULL,
+            attacker int NOT NULL,
+            base int NOT NULL,
+            amount int NOT NULL,
+            time int NOT NULL,
+            KEY idx0 (owner, time),
+            PRIMARY KEY(id)
+        )",
+        
+        'player_relation' => "CREATE TABLE IF NOT EXISTS player_relation (
+            id int NOT NULL,
+            player1 int NOT NULL,
+            player2 int NOT NULL,
+            relation smallint NOT NULL,
+            time int NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'council_relation' => "CREATE TABLE IF NOT EXISTS council_relation (
+            id int NOT NULL,
+            council1 int NOT NULL,
+            council2 int NOT NULL,
+            relation smallint NOT NULL,
+            time int NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'fortress' => "CREATE TABLE IF NOT EXISTS fortress (
+            layer int DEFAULT '0' NOT NULL,
+            sector int DEFAULT '0' NOT NULL,
+            fortress_order int DEFAULT '0' NOT NULL,
+            owner int DEFAULT '0' NOT NULL,
+            PRIMARY KEY(layer, sector, fortress_order)
+        )",
+        
+        'empire_admiral_info' => "CREATE TABLE IF NOT EXISTS empire_admiral_info (
+            admiral_id int DEFAULT '0' NOT NULL,
+            admiral_type int DEFAULT '0' NOT NULL,
+            position_arg1 int DEFAULT '0' NOT NULL,
+            position_arg2 int DEFAULT '0' NOT NULL,
+            position_arg3 int DEFAULT '0' NOT NULL,
+            PRIMARY KEY(admiral_id)
+        )",
+        
+        'empire_fleet_info' => "CREATE TABLE IF NOT EXISTS empire_fleet_info (
+            fleet_id int DEFAULT '0' NOT NULL,
+            fleet_type int DEFAULT '0' NOT NULL,
+            position_arg1 int DEFAULT '0' NOT NULL,
+            position_arg2 int DEFAULT '0' NOT NULL,
+            position_arg3 int DEFAULT '0' NOT NULL,
+            PRIMARY KEY(fleet_id)
+        )",
+        
+        'empire_planet_info' => "CREATE TABLE IF NOT EXISTS empire_planet_info (
+            planet_id int DEFAULT '0' NOT NULL,
+            owner_id int DEFAULT '0' NOT NULL,
+            planet_type int DEFAULT '0' NOT NULL,
+            position_arg int DEFAULT '0' NOT NULL,
+            PRIMARY KEY(planet_id)
+        )",
+        
+        'empire_capital_planet' => "CREATE TABLE IF NOT EXISTS empire_capital_planet (
+            owner_id smallint(6) DEFAULT '0' NOT NULL
+        )",
+        
+        'bounty' => "CREATE TABLE IF NOT EXISTS bounty (
+            id int UNSIGNED DEFAULT '0' NOT NULL,
+            source_player int UNSIGNED DEFAULT '0' NOT NULL,
+            target_player int UNSIGNED DEFAULT '0' NOT NULL,
+            empire_points int DEFAULT '0' NOT NULL,
+            expire_time int UNSIGNED DEFAULT '0' NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'player_action' => "CREATE TABLE IF NOT EXISTS player_action (
+            id int NOT NULL,
+            start_time int NOT NULL,
+            action smallint NOT NULL,
+            owner int NOT NULL,
+            argument int UNSIGNED DEFAULT '0' NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'council_action' => "CREATE TABLE IF NOT EXISTS council_action (
+            id int NOT NULL,
+            start_time int NOT NULL,
+            action smallint NOT NULL,
+            owner int NOT NULL,
+            argument int DEFAULT '0' NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'admission' => "CREATE TABLE IF NOT EXISTS admission (
+            player int NOT NULL,
+            council int NOT NULL,
+            status smallint NOT NULL,
+            time int NOT NULL,
+            content text,
+            PRIMARY KEY(player,council)
+        )",
+        
+        'empire_action' => "CREATE TABLE IF NOT EXISTS empire_action (
+            id int NOT NULL,
+            owner int NOT NULL,
+            action int NOT NULL,
+            target int NOT NULL,
+            amount int NOT NULL,
+            answer int NOT NULL,
+            time int NOT NULL,
+            PRIMARY KEY(owner, id)
+        )",
+        
+        'player_effect' => "CREATE TABLE IF NOT EXISTS player_effect (
+            id int NOT NULL,
+            owner int NOT NULL,
+            life int NOT NULL,
+            type int NOT NULL,
+            target int NOT NULL,
+            apply int NOT NULL,
+            arg1 int(10) NOT NULL,
+            arg2 int(10) NOT NULL,
+            source_type int NOT NULL,
+            source int NOT NULL,
+            PRIMARY KEY(owner, id)
+        )",
+        
+        'player_event' => "CREATE TABLE IF NOT EXISTS player_event (
+            id int NOT NULL,
+            owner int NOT NULL,
+            event int NOT NULL,
+            life int NOT NULL,
+            time int NOT NULL,
+            answered tinyint(1) NOT NULL,
+            PRIMARY KEY(owner, id)
+        )",
+        
+        'detachment_player_player' => "CREATE TABLE IF NOT EXISTS detachment_player_player (
+            id int NOT NULL,
+            player1 int NOT NULL,
+            player2 int NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'detachment_player_council' => "CREATE TABLE IF NOT EXISTS detachment_player_council (
+            id int NOT NULL,
+            player int NOT NULL,
+            council int NOT NULL,
+            PRIMARY KEY(id)
+        )",
+        
+        'detachment_council_council' => "CREATE TABLE IF NOT EXISTS detachment_council_council (
+            id int NOT NULL,
+            type int NOT NULL,
+            council1 int NOT NULL,
+            council2 int NOT NULL,
+            PRIMARY KEY(id)
         )"
     ];
     
