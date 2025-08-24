@@ -1,24 +1,19 @@
 <?php
 // Centralized database configuration with Railway support
 
-// Check if we're on Railway and use the public config
-if (getenv('RAILWAY_ENVIRONMENT') || getenv('MYSQL_PUBLIC_URL')) {
-    // Use Railway's PUBLIC MySQL URL for external connections
-    if (getenv('MYSQL_PUBLIC_URL')) {
-        $db_url = parse_url(getenv('MYSQL_PUBLIC_URL'));
-        define('DB_HOST', $db_url['host']);
-        define('DB_PORT', $db_url['port'] ?? 3306);
-        define('DB_USER', $db_url['user']);
-        define('DB_PASS', $db_url['pass']);
-        define('DB_NAME', ltrim($db_url['path'], '/'));
-    } else {
-        // Use hardcoded Railway values
-        define('DB_HOST', 'interchange.proxy.rlwy.net');
-        define('DB_PORT', '24717');
-        define('DB_USER', 'root');
-        define('DB_PASS', 'euqGOcmQIGrNpnygHCVthrdXrcNgCCHq');
-        define('DB_NAME', 'railway');
-    }
+// Always use Railway public URL when we detect Railway environment or specific hosts
+$is_railway = getenv('RAILWAY_ENVIRONMENT') || 
+              getenv('MYSQL_PUBLIC_URL') || 
+              getenv('MYSQLHOST') == 'mysql.railway.internal' ||
+              (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'railway.app') !== false);
+
+if ($is_railway) {
+    // Always use hardcoded Railway public proxy values for now
+    define('DB_HOST', 'interchange.proxy.rlwy.net');
+    define('DB_PORT', '24717');
+    define('DB_USER', 'root');
+    define('DB_PASS', 'euqGOcmQIGrNpnygHCVthrdXrcNgCCHq');
+    define('DB_NAME', 'railway');
 } elseif (getenv('DATABASE_URL')) {
     $db_url = parse_url(getenv('DATABASE_URL'));
     define('DB_HOST', $db_url['host']);
