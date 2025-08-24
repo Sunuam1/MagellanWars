@@ -55,8 +55,8 @@ try {
         $admissionStmt = $pdo->prepare("
             SELECT a.*, p.name as player_name, p.production, p.honor
             FROM admission a
-            JOIN player p ON a.player_id = p.game_id
-            WHERE a.council_id = :council_id
+            JOIN player p ON a.player = p.game_id
+            WHERE a.council = :council_id AND a.status = 0
             ORDER BY a.time DESC
         ");
         $admissionStmt->execute(['council_id' => $myCouncil['id']]);
@@ -111,18 +111,48 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             $admissionId = time() + rand(1000, 9999);
             $message = trim($_POST['message'] ?? 'Request to join your council');
             
-            $createAdmissionStmt = $pdo->prepare("
-                INSERT INTO admission (player, council, status, time, content)
-                VALUES (:player, :council, 0, :time, :content)
+            // Check if admission request already exists
+            $checkAdmissionStmt = $pdo->prepare("
+                SELECT * FROM admission WHERE player = :player AND council = :council
             ");
-            $createAdmissionStmt->execute([
-                'player' => $playerId,
-                'council' => $councilId,
-                'time' => time(),
-                'content' => $message
-            ]);
+            $checkAdmissionStmt->execute(['player' => $playerId, 'council' => $councilId]);
             
-            $successMsg = "Admission request sent!";
+            if ($checkAdmissionStmt->fetch()) {
+                $errorMsg = "You already have a pending admission request for this council!";
+            } else {
+                $createAdmissionStmt = $pdo->prepare("
+                    INSERT INTO admission (player, council, status, time, content)
+                    VALUES (:player, :council, 0, :time, :content)
+                ");
+                $createAdmissionStmt->execute([
+                    'player' => $playerId,
+                    'council' => $councilId,
+                    'time' => time(),
+                    'content' => $message
+                ]);
+                
+                // Get council speaker to send notification
+                $speakerStmt = $pdo->prepare("SELECT speaker FROM council WHERE id = :id");
+                $speakerStmt->execute(['id' => $councilId]);
+                $speakerId = $speakerStmt->fetchColumn();
+                
+                if ($speakerId) {
+                    // Send notification to council speaker
+                    $msgId = time() + rand(100000, 999999);
+                    $notifyStmt = $pdo->prepare("
+                        INSERT INTO council_message (id, type, sender, receiver, time, status)
+                        VALUES (:id, 1, :sender, :receiver, :time, 0)
+                    ");
+                    $notifyStmt->execute([
+                        'id' => $msgId,
+                        'sender' => $playerId,
+                        'receiver' => $speakerId,
+                        'time' => time()
+                    ]);
+                }
+                
+                $successMsg = "Admission request sent! The council speaker has been notified.";
+            }
         }
     }
     
@@ -164,7 +194,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             ->execute(['council' => $myCouncil['id'], 'id' => $admissionPlayerId]);
         
         // Delete admission request
-        $pdo->prepare("DELETE FROM admission WHERE player_id = :player AND council_id = :council")
+        $pdo->prepare("DELETE FROM admission WHERE player = :player AND council = :council")
             ->execute(['player' => $admissionPlayerId, 'council' => $myCouncil['id']]);
         
         $successMsg = "New member accepted!";
