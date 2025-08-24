@@ -7,6 +7,10 @@ RUN docker-php-ext-install mysqli pdo pdo_mysql
 # Copy web files
 COPY src/web/ /var/www/html/
 
+# Copy startup script
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
+
 # Set permissions
 RUN chown -R www-data:www-data /var/www/html
 
@@ -14,11 +18,8 @@ RUN chown -R www-data:www-data /var/www/html
 RUN a2enmod rewrite && \
     echo "ServerName localhost" >> /etc/apache2/apache2.conf
 
-# Railway uses PORT environment variable
-ENV APACHE_DOCUMENT_ROOT /var/www/html
-ENV PORT 80
+# Railway uses dynamic PORT
+EXPOSE ${PORT}
 
-EXPOSE 80
-
-# Start Apache
-CMD ["apache2-foreground"]
+# Start Apache with dynamic port
+CMD ["/start.sh"]
